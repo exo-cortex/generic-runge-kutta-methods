@@ -1,8 +1,8 @@
 use derive_more::{Add, AddAssign, Div, Mul};
 mod integration;
 use integration::{
-    rk, State, Tableau, Zero, TABLEAU_EULER, TABLEAU_EULER_IMPLICIT, TABLEAU_HEUN_2,
-    TABLEAU_HEUN_3, TABLEAU_RALSTON, TABLEAU_RK_3, TABLEAU_RK_4,
+    rk, State, Tableau, Zero, TABLEAU_EULER, TABLEAU_HEUN_2, TABLEAU_HEUN_3, TABLEAU_RALSTON,
+    TABLEAU_RK_3, TABLEAU_RK_4,
 };
 
 use std::{
@@ -67,13 +67,12 @@ impl<const N: usize> Integration<N> {
 
 fn main() {
     let stepsize = 0.01;
-    let steps = 1000;
+    let steps = 100;
 
     let y0 = 1.0;
 
-    // let mut euler = Integration::new(y0, stepsize, TABLEAU_EULER, "euler");
-    let mut euler_implicit =
-        Integration::new(y0, stepsize, TABLEAU_EULER_IMPLICIT, "euler_implicit");
+    let mut euler = Integration::new(y0, stepsize, TABLEAU_EULER, "euler");
+
     let mut ralston = Integration::new(y0, stepsize, TABLEAU_RALSTON, "ralston");
     let mut heun_2 = Integration::new(y0, stepsize, TABLEAU_HEUN_2, "heun_2");
     let mut heun_3 = Integration::new(y0, stepsize, TABLEAU_HEUN_3, "heun_3");
@@ -81,8 +80,8 @@ fn main() {
     let mut rk_3 = Integration::new(y0, stepsize, TABLEAU_RK_3, "rk_3");
 
     for _ in 0..steps {
-        // euler.combined_step();
-        euler_implicit.combined_step();
+        euler.combined_step();
+
         ralston.combined_step();
         heun_2.combined_step();
         heun_3.combined_step();

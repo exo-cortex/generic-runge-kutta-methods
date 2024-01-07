@@ -1,51 +1,43 @@
 use derive_more::{Add, AddAssign, Div, Mul};
-mod integration;
 use integration::{
-    rk, State, Tableau, Zero, TABLEAU_EULER, TABLEAU_HEUN_2, TABLEAU_HEUN_3, TABLEAU_RALSTON,
-    TABLEAU_RK_3, TABLEAU_RK_4,
+    rk, State, System, Tableau, Zero, TABLEAU_EULER, TABLEAU_HEUN_2, TABLEAU_HEUN_3,
+    TABLEAU_RALSTON, TABLEAU_RK_3, TABLEAU_RK_4,
 };
+
+use std::f64::consts::TAU;
+
+mod double_pendulum;
+use double_pendulum::{DoublePendulumState, DynamicalSystem};
+
+mod integration;
 
 use std::{
     fs::File,
     io::{BufWriter, Write},
 };
 
-#[derive(Debug, Default, Add, AddAssign, Mul, Div, Copy, Clone)]
-struct ThisState {
-    pub x: f64,
-}
-
-impl Zero for ThisState {
-    fn zero() -> Self {
-        ThisState { x: 0.0 }
-    }
-}
-
-impl State for ThisState {
-    fn out(&self) -> f64 {
-        self.x
-    }
-}
-
-fn f(input: &ThisState) -> ThisState {
-    // ThisState { x: (input.x).cos() } // solution: f(x) = x.sin()
-    ThisState { x: -input.x } // solution: f(x) = (-x).exp()
-}
-
-pub struct Integration<const N: usize> {
-    state: ThisState,
+pub struct Integration<SysT, const N: usize>
+where
+    SysT: System,
+{
+    state: SysT::StateT,
+    parameters: SysT::ParamT,
     stepsize: f64,
     time: f64,
     tableau: Tableau<N>,
     output: BufWriter<File>,
 }
 
-impl<const N: usize> Integration<N> {
-    pub fn new(x0: f64, dt: f64, tableau: Tableau<N>, filename: &str) -> Self {
+impl<SysT, const N: usize> Integration<SysT, N>
+where
+    SysT: System,
+{
+    pub fn new(x0: SysT::StateT, dt: f64, tableau: Tableau<N>, filename: &str) -> Self {
         let path = format!("./{}.dat", filename);
         println!("{}", &path);
         Integration {
-            state: ThisState { x: x0 },
+            state: x0,
+            parameters: SysT::ParamT::default(),
             stepsize: dt,
             time: 0.0,
             tableau,
@@ -53,11 +45,29 @@ impl<const N: usize> Integration<N> {
         }
     }
     fn step(&mut self) {
-        rk(&mut self.state, f, &self.tableau, self.stepsize);
+        rk::<SysT, N>(
+            &mut self.state,
+            &self.parameters,
+            SysT::f,
+            &self.tableau,
+            self.stepsize,
+        );
         self.time += self.stepsize;
     }
     fn write(&mut self) {
-        write!(&mut self.output, "{}\t{}\n", self.time, self.state.out()).unwrap();
+        write!(
+            &mut self.output,
+            "{}\t{}",
+            self.time,
+            self.state
+                .out()
+                .iter()
+                .map(|num| num.to_string())
+                .collect::<Vec<_>>()
+                .join("\t")
+                + "\n"
+        )
+        .unwrap();
     }
     fn combined_step(&mut self) {
         self.write();
@@ -67,32 +77,78 @@ impl<const N: usize> Integration<N> {
 
 fn main() {
     let stepsize = 0.01;
-    let steps = 100;
+    let steps = 10000;
+    let write_interval = 25;
 
-    let y0 = 1.0;
+    let pendulum0 = DoublePendulumState {
+        phi1: 0.0,
+        phi2: 0.0,
+        p1: 0.0,
+        p2: 0.5,
+    };
 
-    let mut euler = Integration::new(y0, stepsize, TABLEAU_EULER, "euler");
+    // let mut euler = Integration::<double_pendulum::DynamicalSystem, 1>::new(
+    //     pendulum0,
+    //     stepsize,
+    //     TABLEAU_EULER,
+    //     "euler",
+    // );
 
-    let mut ralston = Integration::new(y0, stepsize, TABLEAU_RALSTON, "ralston");
-    let mut heun_2 = Integration::new(y0, stepsize, TABLEAU_HEUN_2, "heun_2");
-    let mut heun_3 = Integration::new(y0, stepsize, TABLEAU_HEUN_3, "heun_3");
-    let mut rk_4 = Integration::new(y0, stepsize, TABLEAU_RK_4, "rk_4");
-    let mut rk_3 = Integration::new(y0, stepsize, TABLEAU_RK_3, "rk_3");
+    let mut rk_4 = Integration::<double_pendulum::DynamicalSystem, 4>::new(
+        pendulum0,
+        stepsize,
+        TABLEAU_RK_4,
+        "rk_4",
+    );
 
-    for _ in 0..steps {
-        euler.combined_step();
+    let mut ralston = Integration::<double_pendulum::DynamicalSystem, 2>::new(
+        pendulum0,
+        stepsize,
+        TABLEAU_RALSTON,
+        "ralston",
+    );
+    let mut heun_2 = Integration::<double_pendulum::DynamicalSystem, 2>::new(
+        pendulum0,
+        stepsize,
+        TABLEAU_HEUN_2,
+        "heun_2",
+    );
+    let mut heun_3 = Integration::<double_pendulum::DynamicalSystem, 3>::new(
+        pendulum0,
+        stepsize,
+        TABLEAU_HEUN_3,
+        "heun_3",
+    );
 
-        ralston.combined_step();
-        heun_2.combined_step();
-        heun_3.combined_step();
-        rk_4.combined_step();
-        rk_3.combined_step();
+    let mut rk_3 = Integration::<double_pendulum::DynamicalSystem, 3>::new(
+        pendulum0,
+        stepsize,
+        TABLEAU_RK_3,
+        "rk_3",
+    );
+
+    let mut rk_4 = Integration::<double_pendulum::DynamicalSystem, 4>::new(
+        pendulum0,
+        stepsize,
+        TABLEAU_RK_4,
+        "rk_4",
+    );
+
+    for _ in 0..steps / write_interval {
+        for _ in 0..10 {
+            // euler.combined_step();
+            ralston.combined_step();
+            heun_2.combined_step();
+            heun_3.combined_step();
+            rk_4.combined_step();
+            rk_3.combined_step();
+        }
     }
 
-    let mut ground_truth = BufWriter::new(File::create("./ground_truth_exp.dat").unwrap());
-    for x in 0..steps {
-        let x = (x as f64) * stepsize;
-        write!(&mut ground_truth, "{}\t{}\n", x, (-x).exp()).unwrap();
-        // write!(&mut ground_truth, "{}\t{}\n", x, x.sin()).unwrap();
-    }
+    // let mut ground_truth = BufWriter::new(File::create("./ground_truth_exp.dat").unwrap());
+    // for x in 0..steps {
+    //     let x = (x as f64) * stepsize;
+    //     write!(&mut ground_truth, "{}\t{}\n", x, (-x).exp()).unwrap();
+    //     // write!(&mut ground_truth, "{}\t{}\n", x, x.sin()).unwrap();
+    // }
 }

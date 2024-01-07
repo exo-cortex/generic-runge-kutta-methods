@@ -1,5 +1,11 @@
 #![allow(dead_code)]
 
+pub trait System {
+    type StateT: State;
+    type ParamT: State;
+    fn f(i: &Self::StateT, p: &Self::ParamT) -> Self::StateT;
+}
+
 pub trait Zero {
     fn zero() -> Self;
 }
@@ -14,30 +20,35 @@ pub trait State:
     + std::ops::Add<Self, Output = Self>
     + std::ops::AddAssign // + std::ops::Div<f64, Output = Self>
 {
-    fn out(&self) -> f64;
+    fn out(&self) -> Vec<f64>;
 }
 
-pub fn rk<S, const N: usize>(state: &mut S, f: fn(&S) -> S, tableau: &Tableau<N>, h: f64)
-where
-    S: State,
+pub fn rk<SysT, const N: usize>(
+    state: &mut SysT::StateT,
+    parameters: &SysT::ParamT,
+    f: fn(&SysT::StateT, &SysT::ParamT) -> SysT::StateT,
+    tableau: &Tableau<N>,
+    h: f64,
+) where
+    SysT: System,
 {
-    let mut ks = vec![S::zero(); Tableau::<N>::num_ks()];
+    let mut ks = vec![SysT::StateT::zero(); Tableau::<N>::num_ks()];
 
-    ks[0] = f(&state);
+    ks[0] = f(&state, &parameters);
 
     for i in 1..ks.len() {
-        let mut input = S::zero();
+        let mut input = SysT::StateT::zero();
         for k in 0..i {
             input += ks[k] * tableau.a[i][k];
         }
         input = *state + input * h;
-        ks[i] = f(&input);
+        ks[i] = f(&input, &parameters);
     }
 
     *state = *state
         + ks.into_iter()
             .enumerate()
-            .fold(S::zero(), |acc, (i, k)| acc + k * tableau.b[i])
+            .fold(SysT::StateT::zero(), |acc, (i, k)| acc + k * tableau.b[i])
             * h;
 }
 

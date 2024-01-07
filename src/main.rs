@@ -77,8 +77,8 @@ where
 
 fn main() {
     let stepsize = 0.01;
-    let steps = 10000;
-    let write_interval = 25;
+    let steps = 40000;
+    let write_interval = 100;
 
     let pendulum0 = DoublePendulumState {
         phi1: 0.0,
@@ -135,7 +135,7 @@ fn main() {
     );
 
     for _ in 0..steps / write_interval {
-        for _ in 0..10 {
+        for _ in 0..write_interval {
             // euler.combined_step();
             ralston.combined_step();
             heun_2.combined_step();

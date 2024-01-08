@@ -1,4 +1,70 @@
-#![allow(dead_code)]
+// use crate::
+
+use std::{
+    fs::File,
+    io::{BufWriter, Write},
+};
+
+// #![allow(dead_code)]
+
+pub struct Integration<SysT, const N: usize>
+where
+    SysT: System,
+{
+    state: SysT::StateT,
+    parameters: SysT::ParamT,
+    stepsize: f64,
+    time: f64,
+    tableau: Tableau<N>,
+    output: BufWriter<File>,
+}
+
+impl<SysT, const N: usize> Integration<SysT, N>
+where
+    SysT: System,
+{
+    pub fn new(x0: SysT::StateT, dt: f64, tableau: Tableau<N>, filename: &str) -> Self {
+        let path = format!("./{}.dat", filename);
+        println!("{}", &path);
+        Integration {
+            state: x0,
+            parameters: SysT::ParamT::default(),
+            stepsize: dt,
+            time: 0.0,
+            tableau,
+            output: BufWriter::new(File::create(path).unwrap()),
+        }
+    }
+    pub fn step(&mut self) {
+        rk::<SysT, N>(
+            &mut self.state,
+            &self.parameters,
+            SysT::f,
+            &self.tableau,
+            self.stepsize,
+        );
+        self.time += self.stepsize;
+    }
+    pub fn write(&mut self) {
+        write!(
+            &mut self.output,
+            "{}\t{}",
+            self.time,
+            self.state
+                .out()
+                .iter()
+                .map(|num| num.to_string())
+                .collect::<Vec<_>>()
+                .join("\t")
+                + "\n"
+        )
+        .unwrap();
+    }
+    fn combined_step(&mut self) {
+        self.write();
+        self.step();
+    }
+}
 
 pub trait System {
     type StateT: State;

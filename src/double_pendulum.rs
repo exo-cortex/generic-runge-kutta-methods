@@ -1,7 +1,10 @@
 use crate::integration::{rk, State, System, Tableau, Zero};
 use derive_more::{Add, AddAssign, Div, Mul};
 
-pub struct DynamicalSystem {}
+// double pendulum code adapted from here:
+// https://diego.assencio.com/?index=e5ac36fcb129ce95a61f8e8ce0572dbf
+
+pub struct DynamicalSystem {} // empty struct
 
 impl System for DynamicalSystem {
     type StateT = DoublePendulumState;

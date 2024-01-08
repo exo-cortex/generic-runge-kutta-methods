@@ -30,6 +30,7 @@ In order to view the results a python script "plot.py" is provided. Used as is i
 
 
 ## Todos
+- argument parsing to change stepsize, initial conditions, time of integration / number of integration steps etc 
 - stepsize control
     -> needs a function that measures distance (or distance squared) of a system's state.
 - curve simplification to write only necessary points of trajectories i.e. compression.

@@ -32,11 +32,14 @@ line_colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
 
 for (i,(name, file)) in enumerate(zip(filenames,files)):
     color = line_colors[i %  10]
+    # name = name.replace()
     # plt.plot(file[:,0], np.log(file[:, 1]), label=name)
-    plt.plot(file[:,0], (file[:, 1] + np.pi) % ( 2.0 * np.pi) - np.pi, "-", color=color, label="phi1 in {}".format(name))
-    plt.plot(file[:,0], 7 + file[:, 2], "-", color=color, label="p1 in {}".format(name))
-    plt.plot(file[:,0], 21 + (file[:, 3] + np.pi) % ( 2.0 * np.pi) - np.pi, "--", color=color, label="phi2 in {}".format(name))
-    plt.plot(file[:,0], 35 + file[:, 4],"--", color=color, label="p2 in {}".format(name))
+    plt.plot(file[:,0], (file[:, 1] + np.pi) % ( 2.0 * np.pi) - np.pi, "-", color=color, label="$\phi_1$ in {}".format(name))
+    plt.plot(file[:,0], 7 + file[:, 2], "--", color=color, label="$p_1$ in {}".format(name))
+    plt.plot(file[:,0], 21 + (file[:, 3] + np.pi) % ( 2.0 * np.pi) - np.pi, "-", color=color, label="$\phi_2$ in {}".format(name))
+    plt.plot(file[:,0], 35 + file[:, 4],"--", color=color, label="$p_2$ in {}".format(name))
+
+plt.title("different solutions $\mathbf{x}(t) = (\phi_1(t), p_1(t), \phi_2(t), p_2(t))$ sorry für die fehlende achsenbeschriftung usw.")
 
 plt.legend()
 plt.show()
